@@ -1,0 +1,16 @@
+docroot: ../frontend/public
+routes:
+  - route:
+      path: /admin
+      # required_roles:
+      #   - ROLE_ADMIN
+      # not_authorized:
+      #   action: redirect
+      #   parms:
+      #     url: /login
+
+  - route:
+        path: /client
+
+  - route:
+        path: /test
