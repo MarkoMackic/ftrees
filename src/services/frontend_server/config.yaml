@@ -1,16 +1,30 @@
 docroot: ../frontend/public
+server_port: 9090
+
+handler_funcs:
+    - check_perms:
+        type: internal
+        defaults: 
+            auth_server: http://${AUTH_SERVER_HOST}:${AUTH_SERVER_PORT}/
+        params_type: json
+
+
 routes:
-  - route:
-      path: /admin
-      # required_roles:
-      #   - ROLE_ADMIN
-      # not_authorized:
-      #   action: redirect
-      #   parms:
-      #     url: /login
+    - route:
+          path: /admin/*remaining_path
+          # required_roles:
+          #   - ROLE_ADMIN
+          # not_authorized:
+          #   action: redirect
+          #   parms:
+          #     url: /login
 
-  - route:
-        path: /client
+    - route:
+          path: /client/*remaining_path?
+          handler_function: check_perms
+          handler_function_params:
+              required_perms:
+                - CLIENT_VIEW
 
-  - route:
-        path: /test
+    - route:
+          path: /test

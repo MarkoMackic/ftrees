@@ -1,11 +1,15 @@
 use std::future::{ready, Ready};
-use std::collections::HashMap;
 use futures_util::future::LocalBoxFuture;
 use actix_web::{
     Error,
     HttpResponse,
     dev::{Service, ServiceRequest, ServiceResponse, Transform, forward_ready}
 };
+use crate::traits::{AccessHandler};
+use crate::types::{AccessGrant};
+use crate::handlers::check_perms::{CheckPerms};
+
+use matchit;
 
 
 pub struct StaticFilesFirewall {
@@ -33,7 +37,7 @@ where
     fn new_transform(&self, service: S) -> Self::Future {
         let mut sfm = StaticFilesFirewallMiddleware::default(service);
 
-        sfm.construct_rules(self.cfg);
+        sfm.construct(self.cfg);
 
         ready(Ok(sfm))
     }
@@ -41,7 +45,7 @@ where
 
 pub struct StaticFilesFirewallMiddleware<S> {
     service: S,
-    paths: HashMap<String, &'static serde_yaml::Value>
+    router: matchit::Router<Box<dyn AccessHandler>>
 }
 
 impl<S> Service<ServiceRequest> for StaticFilesFirewallMiddleware<S>
@@ -58,9 +62,27 @@ where
 
     fn call(&self, req: ServiceRequest) -> Self::Future 
     {
-        let path = String::from(req.path());
+        let mut path = String::from(req.path());
 
-        Box::pin(ready(Ok(req.into_response(HttpResponse::Ok().append_header(("Content-Type", "text/plain")).body(path)))))
+       //let sval = format!("{:?} \n {} \n {}", req, path, m );
+
+        let res = self.router.at(path.as_mut());
+
+        return match res {
+            Ok(boxed_handler) => {
+                let ag: AccessGrant = boxed_handler.value.handle(boxed_handler.params, &req);
+
+                Box::pin(ready(Ok(req.into_response(
+                    HttpResponse::Ok().append_header(("Content-Type", "text/plain")).body(format!("{:?}", ag))
+                ))))
+            },
+            Err(_) => {
+                Box::pin(self.service.call(req))
+            }
+        }
+
+        //let resp = format!("{:?}", res);
+        //Box::pin(ready(Ok(req.into_response(HttpResponse::Ok().append_header(("Content-Type", "text/plain")).body(path)))))       
     }
 }
 
@@ -68,18 +90,24 @@ impl<S> StaticFilesFirewallMiddleware<S> {
     fn default(svc: S) -> Self {
         StaticFilesFirewallMiddleware {
             service: svc,
-            paths: HashMap::new()
+            router: matchit::Router::new()
         }
     }
 
-    pub fn construct_rules(&mut self, cfg: &'static serde_yaml::Value) {
+    pub fn construct(&mut self, cfg: &'static serde_yaml::Value) {
         if !cfg.as_mapping().unwrap().contains_key("routes") {
             return;
         }
 
-        for route_mapping in cfg.get("routes").expect("Routes as value").as_sequence().expect("Routes as sequence")
+        for route_mapping in cfg.get("routes").expect("routes").as_sequence().expect("routes_seq")
         {  
-            self.paths.insert(String::from(route_mapping.get("route").unwrap().get("path").unwrap().as_str().unwrap()), route_mapping);
+            let path_str = String::from(route_mapping.get("route").expect("route").get("path").expect("path").as_str().expect("path_str"));
+
+            let mut checkPerms = CheckPerms::default();
+
+            checkPerms.construct_handler(route_mapping).expect("handler construct");
+
+            self.router.insert(path_str, Box::from(CheckPerms::default())).expect("well well");
         }
 
     }
