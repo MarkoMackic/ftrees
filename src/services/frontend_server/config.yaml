@@ -20,7 +20,7 @@ routes:
           #     url: /login
 
     - route:
-          path: /client/*remaining_path?
+          path: [/client/, /client/*remaining_path?]
           handler_function: check_perms
           handler_function_params:
               required_perms:

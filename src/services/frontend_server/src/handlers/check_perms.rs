@@ -3,18 +3,18 @@ use crate::traits::{AccessHandler};
 use matchit::Params;
 use actix_web::dev::{ServiceRequest};
 use serde_yaml::{Value};
-use std::result::Result;
+use std::rc::Rc;
 
-#[derive(Debug)]
+#[derive(Debug,Default)]
 pub struct CheckPerms {
     route_cfg: Value
 }
 
 impl CheckPerms {
-    pub fn default() -> Self
+    pub fn new(route_cfg:&Value) -> Self
     {
         Self {
-            route_cfg: Value::default()
+            route_cfg: serde_yaml::from_str(&serde_yaml::to_string(route_cfg).unwrap()).unwrap()
         }
     }
 }
@@ -24,11 +24,6 @@ impl AccessHandler for CheckPerms {
     fn handle(&self, params:Params, req:&ServiceRequest) -> AccessGrant {
         println!("{:?}", req);
         AccessGrant::DENY
-    }
-    fn construct_handler(&mut self, route_cfg:&Value) -> Result<(), String>
-    {
-        self.route_cfg = serde_yaml::from_str(&serde_yaml::to_string(route_cfg).unwrap()).unwrap();
-        Ok(())
     }
 }
 

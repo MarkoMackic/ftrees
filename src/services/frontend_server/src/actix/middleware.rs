@@ -1,4 +1,6 @@
 use std::future::{ready, Ready};
+use std::sync::{Arc};
+use std::rc::{Rc};
 use futures_util::future::LocalBoxFuture;
 use actix_web::{
     Error,
@@ -8,17 +10,16 @@ use actix_web::{
 use crate::traits::{AccessHandler};
 use crate::types::{AccessGrant};
 use crate::handlers::check_perms::{CheckPerms};
-
 use matchit;
 
 
 pub struct StaticFilesFirewall {
-    cfg: &'static serde_yaml::Value
+    cfg: Arc<serde_yaml::Value>
 }
 
 impl StaticFilesFirewall
 {
-    pub fn construct(val : &'static serde_yaml::Value) -> Self {
+    pub fn construct(val : Arc<serde_yaml::Value>) -> Self {
         StaticFilesFirewall { cfg: val }
     }
 }
@@ -37,7 +38,7 @@ where
     fn new_transform(&self, service: S) -> Self::Future {
         let mut sfm = StaticFilesFirewallMiddleware::default(service);
 
-        sfm.construct(self.cfg);
+        sfm.construct(self.cfg.clone());
 
         ready(Ok(sfm))
     }
@@ -45,7 +46,7 @@ where
 
 pub struct StaticFilesFirewallMiddleware<S> {
     service: S,
-    router: matchit::Router<Box<dyn AccessHandler>>
+    router: matchit::Router<Rc<dyn AccessHandler>>
 }
 
 impl<S> Service<ServiceRequest> for StaticFilesFirewallMiddleware<S>
@@ -94,20 +95,26 @@ impl<S> StaticFilesFirewallMiddleware<S> {
         }
     }
 
-    pub fn construct(&mut self, cfg: &'static serde_yaml::Value) {
+    pub fn construct(&mut self, cfg: Arc<serde_yaml::Value>) {
         if !cfg.as_mapping().unwrap().contains_key("routes") {
             return;
         }
 
         for route_mapping in cfg.get("routes").expect("routes").as_sequence().expect("routes_seq")
         {  
-            let path_str = String::from(route_mapping.get("route").expect("route").get("path").expect("path").as_str().expect("path_str"));
+            let path = route_mapping.get("route").expect("route").get("path").expect("path");
 
-            let mut checkPerms = CheckPerms::default();
+            let rp = Rc::new(CheckPerms::new(route_mapping));
 
-            checkPerms.construct_handler(route_mapping).expect("handler construct");
+            let paths: Vec<&str> = match path {
+                serde_yaml::value::Value::Sequence(val)=> (*val).iter().map(|a| a.as_str().expect("string")).collect(),
+                serde_yaml::value::Value::String(val)=> vec!(val),
+                _ => panic!("not ok")
+            };
 
-            self.router.insert(path_str, Box::from(CheckPerms::default())).expect("well well");
+            for p in paths {
+                self.router.insert(p, rp.clone()).expect("well well");
+            }
         }
 
     }
