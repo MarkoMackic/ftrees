@@ -438,7 +438,7 @@ dependencies = [
  "actix-files",
  "actix-web",
  "futures-util",
- "matchit",
+ "path-tree",
  "serde",
  "serde_yaml",
 ]
@@ -655,12 +655,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "matchit"
-version = "0.6.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3dfc802da7b1cf80aefffa0c7b2f77247c8b32206cc83c270b61264f5b360a80"
-
-[[package]]
 name = "memchr"
 version = "2.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -756,6 +750,15 @@ name = "paste"
 version = "1.0.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b1de2e551fb905ac83f73f7aedf2f0cb4a0da7e35efa24a202a936269f1f18e1"
+
+[[package]]
+name = "path-tree"
+version = "0.7.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "00a6bf4714d34a91f3ddab0d893ef09f24bf7eec687ee5faaa8d01ee56547f31"
+dependencies = [
+ "smallvec",
+]
 
 [[package]]
 name = "percent-encoding"

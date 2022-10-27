@@ -1,9 +1,7 @@
 use crate::types::{AccessGrant};
 use crate::traits::{AccessHandler};
-use matchit::Params;
 use actix_web::dev::{ServiceRequest};
 use serde_yaml::{Value};
-use std::rc::Rc;
 
 #[derive(Debug,Default)]
 pub struct CheckPerms {
@@ -21,8 +19,8 @@ impl CheckPerms {
 
 
 impl AccessHandler for CheckPerms {
-    fn handle(&self, params:Params, req:&ServiceRequest) -> AccessGrant {
-        println!("{:?}", req);
+    fn handle(&self, params: &Vec<(&str, &str)>, req:&ServiceRequest) -> AccessGrant {
+        println!("{:?} {:?}", req, params);
         AccessGrant::DENY
     }
 }

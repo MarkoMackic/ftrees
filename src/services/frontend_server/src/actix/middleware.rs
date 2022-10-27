@@ -10,7 +10,7 @@ use actix_web::{
 use crate::traits::{AccessHandler};
 use crate::types::{AccessGrant};
 use crate::handlers::check_perms::{CheckPerms};
-use matchit;
+use path_tree::{PathTree};
 
 
 pub struct StaticFilesFirewall {
@@ -46,7 +46,7 @@ where
 
 pub struct StaticFilesFirewallMiddleware<S> {
     service: S,
-    router: matchit::Router<Rc<dyn AccessHandler>>
+    router: PathTree<Rc<dyn AccessHandler>>
 }
 
 impl<S> Service<ServiceRequest> for StaticFilesFirewallMiddleware<S>
@@ -63,21 +63,17 @@ where
 
     fn call(&self, req: ServiceRequest) -> Self::Future 
     {
-        let mut path = String::from(req.path());
+        return match self.router.find(&String::from(req.path())) {
+            Some(res_tuple) => {
+                let (handler, p) = res_tuple;
 
-       //let sval = format!("{:?} \n {} \n {}", req, path, m );
-
-        let res = self.router.at(path.as_mut());
-
-        return match res {
-            Ok(boxed_handler) => {
-                let ag: AccessGrant = boxed_handler.value.handle(boxed_handler.params, &req);
+                let ag: AccessGrant = handler.handle(&p.params(), &req);
 
                 Box::pin(ready(Ok(req.into_response(
                     HttpResponse::Ok().append_header(("Content-Type", "text/plain")).body(format!("{:?}", ag))
                 ))))
             },
-            Err(_) => {
+            None => {
                 Box::pin(self.service.call(req))
             }
         }
@@ -91,7 +87,7 @@ impl<S> StaticFilesFirewallMiddleware<S> {
     fn default(svc: S) -> Self {
         StaticFilesFirewallMiddleware {
             service: svc,
-            router: matchit::Router::new()
+            router: PathTree::new()
         }
     }
 
@@ -113,7 +109,7 @@ impl<S> StaticFilesFirewallMiddleware<S> {
             };
 
             for p in paths {
-                self.router.insert(p, rp.clone()).expect("well well");
+                self.router.insert(p, rp.clone());
             }
         }
 
