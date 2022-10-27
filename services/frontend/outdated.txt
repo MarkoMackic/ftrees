@@ -1,0 +1,13 @@
+yarn outdated v1.22.17
+info Color legend : 
+ "<red>"    : Major Update backward-incompatible updates 
+ "<yellow>" : Minor Update backward-compatible features 
+ "<green>"  : Patch Update backward-compatible bug fixes
+Package                 Current Wanted Latest Package Type    URL                                                       
+@babel/runtime-corejs2  7.19.6  7.20.0 7.20.0 dependencies    https://babel.dev/docs/en/next/babel-runtime-corejs2      
+babel-loader            8.2.5   8.2.5  9.0.0  devDependencies https://github.com/babel/babel-loader                     
+css-loader              4.3.0   4.3.0  6.7.1  devDependencies https://github.com/webpack-contrib/css-loader             
+mini-css-extract-plugin 1.6.2   1.6.2  2.6.1  devDependencies https://github.com/webpack-contrib/mini-css-extract-plugin
+sass-loader             11.1.1  11.1.1 13.1.0 devDependencies https://github.com/webpack-contrib/sass-loader            
+style-loader            2.0.0   2.0.0  3.3.1  devDependencies https://github.com/webpack-contrib/style-loader           
+Done in 4.98s.
